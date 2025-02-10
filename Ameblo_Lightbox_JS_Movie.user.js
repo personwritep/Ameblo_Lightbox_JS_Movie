@@ -7,6 +7,7 @@
 // @match        https://ameblo.jp/*
 // @match        https://static.blog-video.jp/*
 // @exclude        https://blog.ameba.jp/ucs/*
+// @icon        https://www.google.com/s2/favicons?sz=64&domain=ameblo.jp
 // @noframes
 // @grant        none
 // @updateURL        https://github.com/personwritep/Ameblo_Lightbox_JS_Movie/raw/main/Ameblo_Lightbox_JS_Movie.user.js
