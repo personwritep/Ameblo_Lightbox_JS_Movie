@@ -1,192 +1,167 @@
 // ==UserScript==
 // @name        Ameblo Lightbox JS Movie
 // @namespace        http://tampermonkey.net/
-// @version        1.1
+// @version        1.2
 // @description        ブログ掲載動画のウインドウ内の暗転拡大表示
 // @author        Ameba Blog User
 // @match        https://ameblo.jp/*
+// @match        https://www.youtube.com/embed/*
 // @match        https://static.blog-video.jp/*
 // @exclude        https://blog.ameba.jp/ucs/*
 // @icon        https://www.google.com/s2/favicons?sz=64&domain=ameblo.jp
-// @noframes
 // @grant        none
 // @updateURL        https://github.com/personwritep/Ameblo_Lightbox_JS_Movie/raw/main/Ameblo_Lightbox_JS_Movie.user.js
 // @downloadURL        https://github.com/personwritep/Ameblo_Lightbox_JS_Movie/raw/main/Ameblo_Lightbox_JS_Movie.user.js
 // ==/UserScript==
 
-if(document.domain=='ameblo.jp'){
 
-    let target=document.querySelector('head');
-    let monitor=new MutationObserver(catch_mov);
-    monitor.observe(target, { childList: true });
+setTimeout(()=>{
+    box_env();
+}, 1000);
 
-    catch_mov();
+function box_env(){
+    let m_style=
+        '<style id="lightbox_movie_style">'+
+        '.mov_player { position: fixed; top: 0; left: 0; z-index: calc(infinity); '+
+        'padding: 5vh 0.5vw; width: 99vw !important; height: 90vh !important; '+
+        'background: #000; box-shadow: 0 0 0 2px #000; border: none !important; '+
+        'box-sizing: content-box !important; outline: none !important; } '+
+        '</style>';
 
-    function catch_mov(){
-
-        box_env3();
-
-        function box_env3(){
-            let box_set=
-                '<div id="close_header"><p id="close_mov">✖ Close Movie</p></div>'+
-                '<style id="light_style_y">'+
-                '.mov_player { position: fixed; top: 0; left: 0; z-index: calc(infinity); '+
-                'padding: 10vh 2vw; width: 96vw !important; height: 80vh !important; '+
-                'background: #000; box-shadow: 0 0 0 2px #000; border: none !important; '+
-                'box-sizing: content-box !important; outline: none !important; } '+
-                '.c_o { position: relative; } '+
-                '.c_o .pre_player { border: 2px solid #2196f3;  box-sizing: border-box; '+
-                'outline: 1px solid #fff; outline-offset: -3px; } '+
-                '.c_i { position: relative; top: 0; width: 100%; height: 100%; } '+
-                '.c_i:hover { cursor: pointer; } '+
-                '#close_header { position: fixed; top: 0; left: 0; z-index: 5001; '+
-                'width: 100%; height: 60px; display: none; } '+
-                '#close_header:hover #close_mov { opacity: 1; } '+
-                '#close_mov { position: absolute; top: 20px; left: 30px; opacity: 0; '+
-                'font: bold 21px Meiryo; padding: 5px 12px 1px; background: #fff; '+
-                'color: #000; border: 2px solid #000; border-radius: 6px; cursor: pointer; }'+
-                '</style>';
-
-            if(!document.querySelector('#light_style_y')){
-                document.body.insertAdjacentHTML('beforeend', box_set); }}
+    if(!document.querySelector('#lightbox_movie_style')){
+        document.body.insertAdjacentHTML('beforeend', m_style); }}
 
 
 
-        let y_iframe=document.querySelectorAll('#entryBody iframe[src*="youtube.com"]');
-        for(let k=0; k<y_iframe.length; k++){
-            cover_sw(y_iframe[k]); }
 
-        let s_iframe=document.querySelectorAll('#entryBody iframe[src*="static.blog-video"]');
-        for(let k=0; k<s_iframe.length; k++){
-            cover_sw(s_iframe[k]); }
+if(window.top !==window.self && location.hostname.includes('youtube.com')){
+    window.addEventListener('message', (event)=>{
+        if(!event.data || event.data.type !=='YT_FORWARD_KEY') return;
 
-        let c_iframe=document.querySelectorAll('#entryBody iframe[src*="static-clipblog.blog-video"]');
-        for(let k=0; k<c_iframe.length; k++){
-            cover_sw(c_iframe[k]); }
+        let video=document.querySelector('video');
+        if(!video) return;
 
+        if(event.data.code==='Space'){
+            video.paused ? video.play() : video.pause(); }
+        else if(event.data.code==='ArrowLeft'){
+            video.currentTime=Math.max(0, video.currentTime - 5); }
+        else if(event.data.code==='ArrowRight'){
+            video.currentTime=Math.min(video.duration, video.currentTime + 5); }
+    });
 
-
-        function cover_sw(video){
-            let cover_out=document.createElement('div');
-            cover_out.setAttribute('class', 'c_o');
-            if(video.parentNode.className!='c_o'){
-                cover_out.appendChild(video.cloneNode(true));
-                video.parentNode.replaceChild(cover_out, video);
-                let cover_in=document.createElement('div');
-                cover_in.setAttribute('class', 'c_i');
-                cover_out.appendChild(cover_in);
-            }} //cover_sw()
+    return; }
 
 
 
-        document.addEventListener('keydown', (event)=>{
-            if(event.ctrlKey){
-                box_view(); }
-            else if(event.keyCode=='27'){
-                let close_mov=document.querySelector('#close_mov');
-                if(close_mov){
-                    close_mov.click(); }}});
+let lastActiveIframe=null;
 
-        document.addEventListener('keyup', (event)=>{
-            if(!event.ctrlKey){
-                cover_off(); }});
+window.addEventListener('blur', ()=>{
+    setTimeout(()=>{
+        let active=document.activeElement;
+        if(active && active.tagName==='IFRAME' &&
+           (active.src.includes('youtube.com') || active.src.includes('youtu.be'))){
+            lastActiveIframe=active; // 最後に操作した動画を記憶
+            window.focus(); }
+    }, 0);
 
-
-
-        let amb_header=document.querySelector('#ambHeader');
-        let skinBody=document.querySelector('.skinBody');
-        let skin_page=document.querySelector('.skin-page');
-        let main=document.querySelector('#main');
-        let html_=document.querySelector('html');
-
-        function box_view(){
-            let cover=document.querySelectorAll('.c_i');
-            for(let k=0; k<cover.length; k++){
-                cover[k].style.position='absolute';
-                let player=cover[k].previousElementSibling;
-                if(player){
-                    player.classList.add('pre_player'); }
-
-                cover[k].onclick=function(event){
-                    event.stopImmediatePropagation();
-                    let player=cover[k].previousElementSibling;
-                    if(player){
-                        player.classList.add('mov_player');
-                        amb_header.style.zIndex="0";
-                        if(skinBody){
-                            skinBody.style.position="relative";
-                            skinBody.style.zIndex="3001"; }
-                        if(skin_page){
-                            skin_page.style.position="relative";
-                            skin_page.style.zIndex="2001"; }
-                        main.style.position="relative";
-                        main.style.zIndex="2";
-                        zoom_reset(player); }
-
-                    let close_header=document.querySelector('#close_header');
-                    if(close_header){
-                        html_.style.overflow='hidden';
-                        close_header.style.display='block';
-                        zoom_reset(close_header); }
-
-                    normal_view(); }}
-
-
-            function zoom_reset(player){
-                let zoom_f=window.getComputedStyle(document.body).getPropertyValue('zoom');
-                if(zoom_f || zoom_f!=1){ // bodyで拡大ツールによるのzoom指定がある
-                    player.style.zoom=1/zoom_f; }}
-
-        } // box_view()
+});
 
 
 
-        function normal_view(){
-            let close_header=document.querySelector('#close_header');
-            let close_mov=document.querySelector('#close_mov');
-            if(close_header && close_mov){
-                close_mov.onclick=function(){
-                    html_.style.overflow='';
-                    amb_header.style.zIndex="2000";
-                    if(skinBody){
-                        skinBody.style.position="inherit";
-                        skinBody.style.zIndex="inherit"; }
-                    if(skin_page){
-                        skin_page.style.position="inherit";
-                        skin_page.style.zIndex="inherit"; }
-                    main.style.position="inherit";
-                    main.style.zIndex="inherit";
-                    close_header.style.display='none';
-                    let m_iframe=document.querySelectorAll('#entryBody iframe');
-                    for(let k=0; k<m_iframe.length; k++){
-                        if(m_iframe[k].classList.contains('mov_player')){
-                            m_iframe[k].classList.remove('mov_player'); }
-                        if(m_iframe[k].classList.contains('pre_player')){
-                            m_iframe[k].classList.remove('pre_player'); }}}}}
+window.addEventListener('keydown', (event)=>{
+    let tag=document.activeElement?.tagName;
+    if(tag==='INPUT' || tag==='TEXTAREA' || document.activeElement?.isContentEditable){
+        return; }
+
+
+    if(event.key==='Control'){
+        document.querySelectorAll(
+            'iframe[src*="youtube.com"], iframe[src*="youtu.be"]').forEach(iframe=>{
+            iframe.style.pointerEvents='none'; });
+        return; }
+
+
+    if(['Space', 'ArrowLeft', 'ArrowRight'].includes(event.code)){
+        let target=lastActiveIframe || document.querySelector(
+            'iframe[src*="youtube.com"], iframe[src*="youtu.be"]');
+        if(target && target.contentWindow){
+            event.preventDefault(); // ページ全体のスクロールを防ぐ
+            target.contentWindow.postMessage({ type: 'YT_FORWARD_KEY', code: event.code }, '*');
+        }}
+
+}, true);
 
 
 
-        function cover_off(){
-            let cover=document.querySelectorAll('.c_i');
-            for(let k=0; k<cover.length; k++){
-                cover[k].style.position='relative'; }
-            let pre_player=document.querySelectorAll('.pre_player');
-            for(let k=0; k<pre_player.length; k++){
-                pre_player[k].classList.remove('pre_player'); }}
+let resetPointerEvents=()=>{
+    document.querySelectorAll(
+        'iframe[src*="youtube.com"], iframe[src*="youtu.be"]').forEach(iframe=>{
+        iframe.style.pointerEvents='auto'; }); };
 
-    } // catch_mov()
+window.addEventListener('keyup', (event)=>{
+    if(event.key==='Control') resetPointerEvents();
 
-} // ameblo.jp
+}, true);
 
 
 
-if(document.domain=='static.blog-video.jp'){ // スマホ動画プレーヤー
+document.addEventListener('click', (event)=>{
+    if(!event.ctrlKey) return;
 
-    window.addEventListener('load', function(){
-        let css=
-            '<style id="ALJM">'+
-            '#js-video-bg { filter: opacity(0) !important; }</style>';
-        if(!document.querySelector('#ALJM')){
-            document.documentElement.insertAdjacentHTML('beforeend', css); }});
+    let targetIframe=Array.from(document.querySelectorAll(
+        'iframe[src*="youtube.com"], iframe[src*="youtu.be"]')).find(iframe=>{
+        let rect=iframe.getBoundingClientRect();
+        return event.clientX>=rect.left && event.clientX<=rect.right &&
+            event.clientY>=rect.top && event.clientY<=rect.bottom;
+    });
 
-} // static.blog-video.jp
+
+    let html_=document.querySelector('html');
+    let amb_header=document.querySelector('#ambHeader');
+    let skinBody=document.querySelector('.skinBody');
+    let skin_page=document.querySelector('.skin-page');
+    let main=document.querySelector('#main');
+
+
+    if(targetIframe){
+        event.preventDefault();
+        event.stopPropagation();
+
+        if(targetIframe.dataset.resized==='true'){
+            targetIframe.dataset.resized='false';
+            targetIframe.classList.remove('mov_player');
+
+            html_.style.overflow='';
+            amb_header.style.zIndex="2000";
+            if(skinBody){
+                skinBody.style.position="inherit";
+                skinBody.style.zIndex="inherit"; }
+            if(skin_page){
+                skin_page.style.position="inherit";
+                skin_page.style.zIndex="inherit"; }
+            main.style.position="inherit";
+            main.style.zIndex="inherit"; }
+
+        else{
+            targetIframe.dataset.resized='true';
+            targetIframe.classList.add('mov_player');
+
+            html_.style.overflow='hidden';
+            amb_header.style.zIndex="0";
+            if(skinBody){
+                skinBody.style.position="relative";
+                skinBody.style.zIndex="3001"; }
+            if(skin_page){
+                skin_page.style.position="relative";
+                skin_page.style.zIndex="2001"; }
+            main.style.position="relative";
+            main.style.zIndex="4001";
+            zoom_reset(targetIframe); }}
+
+
+    function zoom_reset(player){
+        let zoom_f=window.getComputedStyle(document.body).getPropertyValue('zoom');
+        if(zoom_f || zoom_f!=1){ // bodyで拡大ツールによるのzoom指定がある
+            player.style.zoom=1/zoom_f; }}
+
+}, true);
